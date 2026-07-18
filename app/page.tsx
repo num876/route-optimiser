@@ -1,65 +1,176 @@
-import Image from "next/image";
+"use client"
 
-export default function Home() {
+import Link from 'next/link'
+import dynamic from 'next/dynamic'
+import { motion } from 'framer-motion'
+import { MapPin, Map, Navigation, ArrowRight, Zap, RefreshCw, ChevronDown } from 'lucide-react'
+
+// Dynamically import the background map to avoid SSR window errors
+const BackgroundMap = dynamic(() => import('@/components/BackgroundMap'), { ssr: false })
+
+export default function LandingPage() {
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
+    <main className="min-h-screen bg-background font-sans text-primary selection:bg-route-line/30 flex flex-col relative overflow-hidden">
+      
+      {/* Live Map Background */}
+      <BackgroundMap />
+      
+      {/* Abstract Background Glows */}
+      <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-route-line/20 rounded-full blur-[120px] pointer-events-none z-0" />
+      <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-green-500/10 rounded-full blur-[120px] pointer-events-none z-0" />
+
+      {/* Navigation */}
+      <nav className="w-full flex items-center justify-between p-6 max-w-7xl mx-auto z-10 relative">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-route-line to-blue-600 flex items-center justify-center shadow-lg">
+            <MapPin size={20} className="text-white" />
+          </div>
+          <span className="font-bold text-lg tracking-tight text-white drop-shadow-md">Route Optimiser</span>
+        </div>
+        <Link 
+          href="/planner" 
+          className="px-5 py-2.5 rounded-xl bg-surface/80 backdrop-blur-md border border-border/50 hover:bg-surface hover:border-border transition-all font-semibold text-sm shadow-sm"
+        >
+          Open App
+        </Link>
+      </nav>
+
+      {/* Hero Section */}
+      <section className="flex-1 flex flex-col items-center justify-center text-center px-4 pt-16 pb-24 z-10 relative max-w-5xl mx-auto">
+        <motion.div
+          initial={{ opacity: 0, y: 30 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8, ease: "easeOut" }}
+          className="flex flex-col items-center p-8 md:p-12 rounded-[3rem] bg-background/40 backdrop-blur-xl border border-white/5 shadow-2xl relative overflow-hidden"
+        >
+          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-surface/80 border border-route-line/30 text-route-line text-sm font-semibold mb-8 shadow-[0_0_20px_rgba(58,143,214,0.15)]">
+            <Navigation size={16} />
+            <span>Multi-Stop Route Planning</span>
+          </div>
+          
+          <h1 className="text-5xl md:text-7xl lg:text-8xl font-extrabold tracking-tight mb-6 leading-[1.1] text-white">
+            Master Your Route. <br className="hidden md:block" />
+            <span className="bg-gradient-to-r from-route-line via-blue-400 to-green-400 bg-clip-text text-transparent">
+              Save Your Time.
+            </span>
           </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
+          
+          <p className="text-lg md:text-xl text-zinc-300 max-w-2xl mb-12 leading-relaxed font-medium">
+            Whether you are running daily deliveries, mapping a sales territory, or planning a road trip, our smart algorithm instantly calculates the fastest path between all your stops.
           </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+          
+          <div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto mb-12">
+            <Link 
+              href="/planner"
+              className="px-8 py-4 rounded-2xl bg-gradient-to-r from-route-line to-blue-600 hover:from-route-line/90 hover:to-blue-600/90 text-white font-bold text-lg shadow-[0_10px_30px_rgba(58,143,214,0.3)] hover:shadow-[0_15px_40px_rgba(58,143,214,0.4)] transition-all active:scale-[0.98] flex items-center justify-center gap-2 group"
+            >
+              Start Planning
+              <ArrowRight size={20} className="group-hover:translate-x-1 transition-transform" />
+            </Link>
+            
+            <Link 
+              href="/planner?demo=true"
+              className="px-8 py-4 rounded-2xl bg-surface/80 backdrop-blur-md border border-border/80 hover:bg-surface hover:border-border text-primary font-bold text-lg transition-all active:scale-[0.98] flex items-center justify-center gap-2"
+            >
+              Try Demo Route
+            </Link>
+          </div>
+          
+          {/* Scroll Down Indicator */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1, y: [0, 10, 0] }}
+            transition={{ delay: 1.5, duration: 2, repeat: Infinity, ease: "easeInOut" }}
+            className="absolute bottom-8 text-zinc-500 hidden md:block"
           >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+            <ChevronDown size={32} />
+          </motion.div>
+        </motion.div>
+      </section>
+
+      {/* Feature Grid */}
+      <section className="bg-surface/60 backdrop-blur-2xl border-t border-border/50 py-24 z-10 relative">
+        <div className="max-w-7xl mx-auto px-6">
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="text-center mb-16"
           >
-            Documentation
-          </a>
+            <h2 className="text-4xl md:text-5xl font-bold tracking-tight mb-4 text-white">
+              Engineered for <span className="bg-gradient-to-r from-route-line to-blue-400 bg-clip-text text-transparent">Logistics</span>
+            </h2>
+            <p className="text-zinc-400 max-w-xl mx-auto text-lg">Built to handle complex routing with an intuitive, map-first interface.</p>
+          </motion.div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {/* Feature 1 */}
+            <motion.div 
+              initial={{ opacity: 0, y: 30 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.5, delay: 0.1 }}
+              whileHover={{ y: -5 }}
+              className="bg-background/80 backdrop-blur-lg border border-border/50 p-8 rounded-[2rem] hover:border-route-line/50 transition-all shadow-lg hover:shadow-[0_10px_40px_rgba(58,143,214,0.15)] group relative overflow-hidden"
+            >
+              <div className="absolute top-0 right-0 w-32 h-32 bg-route-line/10 rounded-full blur-[50px] -mr-16 -mt-16 transition-opacity duration-500 group-hover:opacity-100 opacity-0" />
+              <div className="w-14 h-14 rounded-2xl bg-route-line/10 border border-route-line/20 text-route-line flex items-center justify-center mb-6 group-hover:scale-110 transition-transform shadow-inner relative z-10">
+                <Zap size={28} />
+              </div>
+              <h3 className="text-2xl font-bold mb-3 text-white relative z-10">Instant Optimization</h3>
+              <p className="text-zinc-400 leading-relaxed font-medium relative z-10">
+                Add your stops in any order. Our custom 2-opt TSP solver instantly reorders them to find the absolute shortest path.
+              </p>
+            </motion.div>
+
+            {/* Feature 2 */}
+            <motion.div 
+              initial={{ opacity: 0, y: 30 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.5, delay: 0.2 }}
+              whileHover={{ y: -5 }}
+              className="bg-background/80 backdrop-blur-lg border border-border/50 p-8 rounded-[2rem] hover:border-blue-500/50 transition-all shadow-lg hover:shadow-[0_10px_40px_rgba(59,130,246,0.15)] group relative overflow-hidden"
+            >
+              <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/10 rounded-full blur-[50px] -mr-16 -mt-16 transition-opacity duration-500 group-hover:opacity-100 opacity-0" />
+              <div className="w-14 h-14 rounded-2xl bg-blue-500/10 border border-blue-500/20 text-blue-400 flex items-center justify-center mb-6 group-hover:rotate-180 transition-transform duration-500 shadow-inner relative z-10">
+                <RefreshCw size={28} />
+              </div>
+              <h3 className="text-2xl font-bold mb-3 text-white relative z-10">Round Trip Planning</h3>
+              <p className="text-zinc-400 leading-relaxed font-medium relative z-10">
+                Need to return to your depot or starting location? Toggle "Round Trip" to automatically close the loop on your route.
+              </p>
+            </motion.div>
+
+            {/* Feature 3 */}
+            <motion.div 
+              initial={{ opacity: 0, y: 30 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.5, delay: 0.3 }}
+              whileHover={{ y: -5 }}
+              className="bg-background/80 backdrop-blur-lg border border-border/50 p-8 rounded-[2rem] hover:border-green-500/50 transition-all shadow-lg hover:shadow-[0_10px_40px_rgba(34,197,94,0.15)] group relative overflow-hidden"
+            >
+              <div className="absolute top-0 right-0 w-32 h-32 bg-green-500/10 rounded-full blur-[50px] -mr-16 -mt-16 transition-opacity duration-500 group-hover:opacity-100 opacity-0" />
+              <div className="w-14 h-14 rounded-2xl bg-green-500/10 border border-green-500/20 text-green-400 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform shadow-inner relative z-10">
+                <Map size={28} />
+              </div>
+              <h3 className="text-2xl font-bold mb-3 text-white relative z-10">Interactive Map</h3>
+              <p className="text-zinc-400 leading-relaxed font-medium relative z-10">
+                Visualize your journey with edge-to-edge Leaflet mapping, numbered waypoints, and animated route lines.
+              </p>
+            </motion.div>
+          </div>
         </div>
-      </main>
-    </div>
-  );
+      </section>
+
+      {/* Footer */}
+      <footer className="w-full py-8 border-t border-border/30 text-center z-10 relative bg-background/90 backdrop-blur-md">
+        <p className="text-zinc-500 text-sm font-medium">
+          Powered by OpenRouteService and Leaflet.
+        </p>
+      </footer>
+
+    </main>
+  )
 }
