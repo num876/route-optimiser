@@ -48,9 +48,10 @@ function SortableStopItem({ stop, index, onRemove, disabled }: { stop: Stop, ind
       <div 
         {...attributes} 
         {...listeners}
-        className={`text-secondary p-1 rounded hover:text-white transition-colors cursor-grab active:cursor-grabbing ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+        aria-label="Drag to reorder stop"
+        className={`text-secondary -my-1 -ml-1 flex h-11 w-9 shrink-0 touch-none items-center justify-center rounded-lg hover:text-white transition-colors cursor-grab active:cursor-grabbing ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
       >
-        <GripVertical size={16} />
+        <GripVertical size={18} />
       </div>
       
       <div className="flex-1 min-w-0">
@@ -64,9 +65,10 @@ function SortableStopItem({ stop, index, onRemove, disabled }: { stop: Stop, ind
         type="button"
         onClick={(e) => { e.stopPropagation(); onRemove(stop.id); }}
         disabled={disabled}
-        className="text-secondary hover:text-red-400 p-1.5 rounded-lg hover:bg-red-400/10 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+        aria-label={`Remove ${stop.address}`}
+        className="text-secondary hover:text-red-400 -my-1 -mr-1 flex h-10 w-10 shrink-0 items-center justify-center rounded-lg hover:bg-red-400/10 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
       >
-        <X size={16} />
+        <X size={18} />
       </button>
     </motion.div>
   )

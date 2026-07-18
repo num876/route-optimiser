@@ -26,13 +26,13 @@ const createNumberedIcon = (number: number, isStart: boolean) => {
   });
 }
 
-function MapUpdater({ stops, fleetGeometries, naiveGeometry }: { stops: Stop[], fleetGeometries?: [number, number][][], naiveGeometry?: [number, number][] }) {
+function MapUpdater({ stops, fleetGeometries, naiveGeometry, bottomInset = 0 }: { stops: Stop[], fleetGeometries?: [number, number][][], naiveGeometry?: [number, number][], bottomInset?: number }) {
   const map = useMap()
-  
+
   useEffect(() => {
     if (stops.length > 0) {
       const bounds = L.latLngBounds(stops.map(s => [s.latitude, s.longitude]))
-      
+
       if (fleetGeometries) {
         fleetGeometries.forEach(route => {
           route.forEach(coord => bounds.extend(coord as [number, number]))
@@ -40,16 +40,20 @@ function MapUpdater({ stops, fleetGeometries, naiveGeometry }: { stops: Stop[], 
       } else if (naiveGeometry) {
         naiveGeometry.forEach(coord => bounds.extend(coord as [number, number]))
       }
-      
+
       const isMobile = window.innerWidth < 768
-      const paddingOptions: L.FitBoundsOptions = isMobile 
-        ? { paddingBottomRight: [0, window.innerHeight * 0.5], paddingTopLeft: [20, 20], maxZoom: 15 } 
+      // On mobile the bottom sheet overlaps the map, so reserve its height (plus a
+      // small margin) as bottom padding to keep the whole route visible above it.
+      const bottomPad = isMobile ? Math.round(bottomInset) + 24 : 50
+      const paddingOptions: L.FitBoundsOptions = isMobile
+        ? { paddingBottomRight: [24, bottomPad], paddingTopLeft: [24, 24], maxZoom: 15 }
         : { paddingBottomRight: [50, 50], paddingTopLeft: [450, 50], maxZoom: 15 }
 
       map.fitBounds(bounds, paddingOptions)
     }
-  }, [stops, fleetGeometries, naiveGeometry, map])
-  
+    // Re-fit when the sheet height settles at a snap point as well.
+  }, [stops, fleetGeometries, naiveGeometry, map, bottomInset])
+
   return null
 }
 
@@ -58,9 +62,10 @@ interface RouteMapProps {
   naiveGeometry?: [number, number][]
   fleetGeometries?: [number, number][][]
   showOptimised?: boolean
+  bottomInset?: number
 }
 
-export default function RouteMap({ stops, naiveGeometry, fleetGeometries, showOptimised }: RouteMapProps) {
+export default function RouteMap({ stops, naiveGeometry, fleetGeometries, showOptimised, bottomInset = 0 }: RouteMapProps) {
   const defaultCenter: [number, number] = [51.505, -0.09]
 
   return (
@@ -101,7 +106,7 @@ export default function RouteMap({ stops, naiveGeometry, fleetGeometries, showOp
           />
         ))}
         
-        <MapUpdater stops={stops} fleetGeometries={showOptimised ? fleetGeometries : undefined} naiveGeometry={naiveGeometry} />
+        <MapUpdater stops={stops} fleetGeometries={showOptimised ? fleetGeometries : undefined} naiveGeometry={naiveGeometry} bottomInset={bottomInset} />
       </MapContainer>
     </div>
   )
