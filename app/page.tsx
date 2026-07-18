@@ -3,7 +3,9 @@
 import Link from 'next/link'
 import dynamic from 'next/dynamic'
 import { motion } from 'framer-motion'
-import { MapPin, Map, Navigation, ArrowRight, Zap, RefreshCw, ChevronDown } from 'lucide-react'
+import { Map, Navigation, ArrowRight, Zap, RefreshCw, ChevronDown } from 'lucide-react'
+import SiteNav from '@/components/SiteNav'
+import SiteFooter from '@/components/SiteFooter'
 
 // Dynamically import the background map to avoid SSR window errors
 const BackgroundMap = dynamic(() => import('@/components/BackgroundMap'), { ssr: false })
@@ -20,20 +22,7 @@ export default function LandingPage() {
       <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-green-500/10 rounded-full blur-[120px] pointer-events-none z-0" />
 
       {/* Navigation */}
-      <nav className="w-full flex items-center justify-between p-6 max-w-7xl mx-auto z-10 relative">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-route-line to-blue-600 flex items-center justify-center shadow-lg">
-            <MapPin size={20} className="text-white" />
-          </div>
-          <span className="font-bold text-lg tracking-tight text-white drop-shadow-md">Route Optimiser</span>
-        </div>
-        <Link 
-          href="/planner" 
-          className="px-5 py-2.5 rounded-xl bg-surface/80 backdrop-blur-md border border-border/50 hover:bg-surface hover:border-border transition-all font-semibold text-sm shadow-sm"
-        >
-          Open App
-        </Link>
-      </nav>
+      <SiteNav />
 
       {/* Hero Section */}
       <section className="flex-1 flex flex-col items-center justify-center text-center px-4 pt-8 pb-14 md:pt-16 md:pb-24 z-10 relative max-w-5xl mx-auto">
@@ -166,11 +155,7 @@ export default function LandingPage() {
       </section>
 
       {/* Footer */}
-      <footer className="w-full py-8 border-t border-border/30 text-center z-10 relative bg-background/90 backdrop-blur-md">
-        <p className="text-zinc-500 text-sm font-medium">
-          Powered by OpenRouteService and Leaflet.
-        </p>
-      </footer>
+      <SiteFooter />
 
     </main>
   )

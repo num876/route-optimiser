@@ -12,9 +12,10 @@ import FleetBreakdown from '@/components/FleetBreakdown'
 import Footer from '@/components/Footer'
 import AboutModal from '@/components/AboutModal'
 import MobileSheet, { MobileSheetHandle } from '@/components/MobileSheet'
-import { Loader2, Route as RouteIcon, Truck, Minus, Plus, AlertTriangle } from 'lucide-react'
+import { Loader2, Truck, Minus, Plus, AlertTriangle } from 'lucide-react'
 import { AnimatePresence } from 'framer-motion'
 import Link from 'next/link'
+import { LogoMark } from '@/components/Logo'
 
 const RouteMap = dynamic(() => import('@/components/RouteMap'), {
   ssr: false,
@@ -235,8 +236,8 @@ function PlannerContent() {
 
   const brand = (
     <div className="flex items-center gap-3">
-      <Link href="/" className="w-10 h-10 rounded-xl bg-gradient-to-br from-route-line to-purple-500 flex items-center justify-center shadow-lg hover:scale-105 transition-transform cursor-pointer shrink-0">
-        <RouteIcon size={22} className="text-white" />
+      <Link href="/" aria-label="Route Optimiser home" className="shrink-0 rounded-xl hover:scale-105 transition-transform cursor-pointer">
+        <LogoMark size={40} idSuffix="planner" className="rounded-xl shadow-lg" />
       </Link>
       <div>
         <h1 className="text-lg md:text-2xl font-bold tracking-tight mb-0 bg-gradient-to-r from-white to-gray-400 bg-clip-text text-transparent">Fleet Optimiser</h1>
