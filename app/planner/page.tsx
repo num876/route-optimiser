@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useCallback, useEffect, Suspense } from 'react'
+import { useState, useCallback, useEffect, useRef, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
 import dynamic from 'next/dynamic'
 import { Stop, OptimisedFleet, FleetRoute } from '@/lib/types'
@@ -11,11 +11,12 @@ import RouteSummary from '@/components/RouteSummary'
 import FleetBreakdown from '@/components/FleetBreakdown'
 import Footer from '@/components/Footer'
 import AboutModal from '@/components/AboutModal'
-import { Loader2, Route as RouteIcon, Truck } from 'lucide-react'
+import MobileSheet, { MobileSheetHandle } from '@/components/MobileSheet'
+import { Loader2, Route as RouteIcon, Truck, Minus, Plus, AlertTriangle } from 'lucide-react'
 import { AnimatePresence } from 'framer-motion'
 import Link from 'next/link'
 
-const RouteMap = dynamic(() => import('@/components/RouteMap'), { 
+const RouteMap = dynamic(() => import('@/components/RouteMap'), {
   ssr: false,
   loading: () => <div className="w-full h-full bg-background flex items-center justify-center text-secondary">Loading Map...</div>
 })
@@ -32,18 +33,29 @@ function PlannerContent() {
   const [isAboutOpen, setIsAboutOpen] = useState(false)
   const [hasLoadedDemo, setHasLoadedDemo] = useState(false)
   const [isInitialized, setIsInitialized] = useState(false)
+  const [errorMessage, setErrorMessage] = useState<string | null>(null)
 
-  const [isSidebarExpanded, setIsSidebarExpanded] = useState(false)
+  const [isMobile, setIsMobile] = useState(false)
+  const [sheetHeight, setSheetHeight] = useState(0)
+  const sheetRef = useRef<MobileSheetHandle>(null)
+
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 767px)')
+    const update = () => setIsMobile(mq.matches)
+    update()
+    mq.addEventListener('change', update)
+    return () => mq.removeEventListener('change', update)
+  }, [])
 
   // Hydrate state from localStorage on mount
   useEffect(() => {
     try {
       const savedStops = localStorage.getItem('route-optimiser-stops')
       if (savedStops) setStops(JSON.parse(savedStops))
-      
+
       const savedNumVehicles = localStorage.getItem('route-optimiser-vehicles')
       if (savedNumVehicles) setNumVehicles(parseInt(savedNumVehicles, 10))
-      
+
       const savedRoundTrip = localStorage.getItem('route-optimiser-roundtrip')
       if (savedRoundTrip) setIsRoundTrip(savedRoundTrip === 'true')
     } catch (e) {
@@ -73,36 +85,37 @@ function PlannerContent() {
 
   const handleOptimise = useCallback(async (stopsToUse: Stop[] = stops, roundTripFlag: boolean = isRoundTrip, vehiclesFlag: number = numVehicles) => {
     if (stopsToUse.length < 2) return
-    
+
     setIsOptimising(true)
+    setErrorMessage(null)
     setRouteResult(null)
     setShowOptimised(false)
-    setIsSidebarExpanded(false) // Auto-collapse on mobile to show the map calculation
-    
+    sheetRef.current?.snapTo(0) // Collapse to peek on mobile so the map calculation is visible
+
     try {
       setOptimisationStage('Clustering & Calculating...')
       const matrixRes = await fetch('/api/matrix', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
+        body: JSON.stringify({
           stops: stopsToUse.map(s => ({ lat: s.latitude, lng: s.longitude })),
           isRoundTrip: roundTripFlag,
           numVehicles: vehiclesFlag
         })
       })
       const matrixData = await matrixRes.json()
-      
+
       if (matrixData.error) throw new Error(matrixData.error)
 
       setOptimisationStage('Generating geometries...')
-      
+
       // Parallel API Execution using Promise.all
       const fleetPromises = matrixData.fleetRoutes.map(async (routeIndices: number[]) => {
         const vehicleStops = routeIndices.map((index: number) => stopsToUse[index])
         if (roundTripFlag && vehicleStops.length > 1) {
           vehicleStops.push(vehicleStops[0])
         }
-        
+
         if (vehicleStops.length > 1) {
           const geomRes = await fetch('/api/directions', {
             method: 'POST',
@@ -117,10 +130,10 @@ function PlannerContent() {
         }
         return null
       })
-      
+
       const fleetRoutesResults = await Promise.all(fleetPromises)
       const fleetRoutes = fleetRoutesResults.filter(Boolean) as FleetRoute[]
-        
+
       const naiveStopsForDirections = [...stopsToUse]
       if (roundTripFlag && naiveStopsForDirections.length > 1) {
         naiveStopsForDirections.push(naiveStopsForDirections[0])
@@ -144,21 +157,21 @@ function PlannerContent() {
       }
 
       setRouteResult(result)
-      
+
       // Reorder stops: Depot first, then all other stops grouped by vehicle
       const newStops = [stopsToUse[0]]
       for (const routeIndices of matrixData.fleetRoutes) {
         newStops.push(...routeIndices.slice(1).map((i: number) => stopsToUse[i]))
       }
       setStops(newStops)
-      
+
       setTimeout(() => {
         setShowOptimised(true)
       }, 800)
 
     } catch (error) {
       console.error(error)
-      alert('Failed to optimise fleet routes. Check console for details.')
+      setErrorMessage('Failed to optimise routes. Please check your stops and try again.')
     } finally {
       setIsOptimising(false)
       setOptimisationStage('')
@@ -213,132 +226,168 @@ function PlannerContent() {
     setShowOptimised(false)
   }, [])
 
+  const clearResults = () => {
+    setRouteResult(null)
+    setShowOptimised(false)
+  }
+
+  // ---- Shared content fragments (reused by mobile sheet and desktop sidebar) ----
+
+  const brand = (
+    <div className="flex items-center gap-3">
+      <Link href="/" className="w-10 h-10 rounded-xl bg-gradient-to-br from-route-line to-purple-500 flex items-center justify-center shadow-lg hover:scale-105 transition-transform cursor-pointer shrink-0">
+        <RouteIcon size={22} className="text-white" />
+      </Link>
+      <div>
+        <h1 className="text-lg md:text-2xl font-bold tracking-tight mb-0 bg-gradient-to-r from-white to-gray-400 bg-clip-text text-transparent">Fleet Optimiser</h1>
+        <p className="text-secondary text-[11px] md:text-xs">Distribute up to 20 stops across your drivers.</p>
+      </div>
+    </div>
+  )
+
+  const controls = (
+    <div className="flex flex-col gap-4 border-t border-white/10 pt-4 shrink-0">
+      {/* Fleet Controls */}
+      <div className="flex items-center justify-between px-1">
+        <div className="flex items-center gap-2 text-white">
+          <Truck size={16} className="text-route-line" />
+          <span className="text-sm font-semibold">Fleet Size</span>
+        </div>
+        <div className="flex items-center gap-3">
+          <button
+            aria-label="Decrease vehicles"
+            onClick={() => { setNumVehicles(Math.max(1, numVehicles - 1)); clearResults() }}
+            className="w-11 h-11 rounded-full bg-background border border-border flex items-center justify-center hover:bg-white/10 active:scale-95 transition-all"
+          >
+            <Minus size={18} />
+          </button>
+          <span className="font-bold text-lg w-5 text-center tabular-nums">{numVehicles}</span>
+          <button
+            aria-label="Increase vehicles"
+            onClick={() => { setNumVehicles(Math.min(5, numVehicles + 1)); clearResults() }}
+            className="w-11 h-11 rounded-full bg-background border border-border flex items-center justify-center hover:bg-white/10 active:scale-95 transition-all"
+          >
+            <Plus size={18} />
+          </button>
+        </div>
+      </div>
+
+      <button
+        type="button"
+        onClick={() => { setIsRoundTrip(!isRoundTrip); clearResults() }}
+        disabled={isOptimising}
+        className="flex items-center gap-3 px-1 py-1 -my-1 text-left disabled:opacity-50"
+      >
+        <span className={`w-11 h-6 rounded-full transition-colors flex items-center relative shadow-inner shrink-0 ${isRoundTrip ? 'bg-route-line' : 'bg-background border border-border'}`}>
+          <span className={`w-4 h-4 bg-white rounded-full absolute transition-transform shadow-md ${isRoundTrip ? 'translate-x-6' : 'translate-x-1'}`} />
+        </span>
+        <span className="text-sm text-secondary select-none">Return to Depot (Round Trip)</span>
+      </button>
+    </div>
+  )
+
+  const scrollBody = (
+    <div className="flex flex-col gap-5">
+      <StopInput onAddStop={handleAddStop} disabled={isOptimising || stops.length >= 20} />
+
+      {errorMessage && (
+        <div role="alert" className="flex items-start gap-2 rounded-xl border border-red-500/30 bg-red-500/10 px-3 py-2.5 text-xs text-red-300">
+          <AlertTriangle size={16} className="shrink-0 mt-0.5" />
+          <span>{errorMessage}</span>
+        </div>
+      )}
+
+      <div className="relative min-h-[120px]">
+        {isOptimising && (
+          <div className="absolute inset-0 bg-surface/50 backdrop-blur-sm z-50 flex items-center justify-center rounded-xl">
+            <div className="flex flex-col items-center gap-2 text-route-line animate-pulse">
+              <Loader2 size={32} className="animate-spin" />
+              <span className="text-sm font-semibold text-center px-4">{optimisationStage}</span>
+            </div>
+          </div>
+        )}
+        <StopList
+          stops={stops}
+          onRemoveStop={handleRemoveStop}
+          onReorder={handleReorder}
+          disabled={isOptimising}
+        />
+      </div>
+
+      {controls}
+
+      {routeResult && showOptimised && (
+        <div>
+          <RouteSummary
+            totalDistanceMeters={routeResult.totalDistanceMeters}
+            totalDurationSeconds={routeResult.totalDurationSeconds}
+          />
+          <FleetBreakdown fleet={routeResult} stops={stops} />
+        </div>
+      )}
+    </div>
+  )
+
+  const optimiseButton = (
+    <button
+      onClick={() => handleOptimise()}
+      disabled={stops.length < 2 || isOptimising}
+      className="w-full py-4 px-4 bg-route-line text-white font-semibold rounded-xl shadow-[0_10px_20px_rgba(58,143,214,0.3)] hover:bg-route-line/90 hover:shadow-[0_10px_25px_rgba(58,143,214,0.4)] hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0 disabled:hover:shadow-none transition-all active:scale-[0.98] flex items-center justify-center gap-2"
+    >
+      {isOptimising ? (
+        <>
+          <Loader2 size={20} className="animate-spin" />
+          Calculating...
+        </>
+      ) : (
+        `Optimise Route${numVehicles > 1 ? 's' : ''}`
+      )}
+    </button>
+  )
+
   return (
     <main className="relative w-screen h-screen overflow-hidden bg-background font-sans text-primary">
-      
+
       <div className="absolute inset-0 z-0">
-        <RouteMap 
-          stops={stops} 
+        <RouteMap
+          stops={stops}
           naiveGeometry={routeResult?.naiveGeometry}
           fleetGeometries={routeResult?.routes.map(r => r.geometry)}
           showOptimised={showOptimised}
+          bottomInset={isMobile ? sheetHeight : 0}
         />
       </div>
 
-      <div className={`absolute z-10 flex flex-col gap-5 
-        bottom-0 left-0 right-0 rounded-t-3xl border-t border-border/50 transition-all duration-300 ease-[cubic-bezier(0.25,0.1,0.25,1)]
-        md:top-4 md:bottom-4 md:left-4 md:right-auto md:w-[420px] md:h-auto md:rounded-2xl md:border
-        bg-surface/80 backdrop-blur-2xl shadow-[0_0_50px_rgba(0,0,0,0.5)] p-6 overflow-hidden
-        ${isSidebarExpanded ? 'h-[85vh]' : 'h-[35vh] md:h-auto'}`}
-      >
-        <button 
-          className="absolute top-3 left-1/2 -translate-x-1/2 w-16 h-1.5 rounded-full bg-border hover:bg-zinc-600 transition-colors md:hidden"
-          onClick={() => setIsSidebarExpanded(!isSidebarExpanded)}
-        />
-        
-        <div className="flex items-center gap-3 mt-2 md:mt-0">
-          <Link href="/" className="w-10 h-10 rounded-xl bg-gradient-to-br from-route-line to-purple-500 flex items-center justify-center shadow-lg hover:scale-105 transition-transform cursor-pointer shrink-0">
-            <RouteIcon size={24} className="text-white" />
-          </Link>
-          <div>
-            <h1 className="text-xl md:text-2xl font-bold tracking-tight mb-0 bg-gradient-to-r from-white to-gray-400 bg-clip-text text-transparent">Fleet Optimiser</h1>
-            <p className="text-secondary text-[11px] md:text-xs">Distribute up to 20 stops across your drivers.</p>
-          </div>
+      {/* Desktop sidebar */}
+      <div className="hidden md:flex absolute z-10 flex-col gap-5 top-4 bottom-4 left-4 w-[420px] rounded-2xl border border-border/50 bg-surface/80 backdrop-blur-2xl shadow-[0_0_50px_rgba(0,0,0,0.5)] p-6 overflow-hidden">
+        {brand}
+        <div className="flex-1 overflow-y-auto pr-2 -mr-2">
+          {scrollBody}
         </div>
-
-        <div className="flex-1 overflow-y-auto flex flex-col gap-5 pr-2 -mr-2">
-          <StopInput onAddStop={handleAddStop} disabled={isOptimising || stops.length >= 20} />
-
-          <div className="relative min-h-[120px] flex-1">
-            {isOptimising && (
-              <div className="absolute inset-0 bg-surface/50 backdrop-blur-sm z-50 flex items-center justify-center rounded-xl">
-                <div className="flex flex-col items-center gap-2 text-route-line animate-pulse">
-                  <Loader2 size={32} className="animate-spin" />
-                  <span className="text-sm font-semibold text-center px-4">{optimisationStage}</span>
-                </div>
-              </div>
-            )}
-            <StopList 
-              stops={stops} 
-              onRemoveStop={handleRemoveStop} 
-              onReorder={handleReorder}
-              disabled={isOptimising}
-            />
-          </div>
-
-          <div className="flex flex-col gap-4 border-t border-white/10 pt-4 shrink-0">
-            {/* Fleet Controls */}
-            <div className="flex items-center justify-between px-1">
-              <div className="flex items-center gap-2 text-white">
-                <Truck size={16} className="text-route-line" />
-                <span className="text-sm font-semibold">Fleet Size (Vehicles)</span>
-              </div>
-              <div className="flex items-center gap-3">
-                <button 
-                  onClick={() => { setNumVehicles(Math.max(1, numVehicles - 1)); setRouteResult(null); setShowOptimised(false); }} 
-                  className="w-8 h-8 rounded-full bg-background border border-border flex items-center justify-center hover:bg-white/10 transition-colors"
-                >
-                  -
-                </button>
-                <span className="font-bold text-lg w-4 text-center">{numVehicles}</span>
-                <button 
-                  onClick={() => { setNumVehicles(Math.min(5, numVehicles + 1)); setRouteResult(null); setShowOptimised(false); }} 
-                  className="w-8 h-8 rounded-full bg-background border border-border flex items-center justify-center hover:bg-white/10 transition-colors"
-                >
-                  +
-                </button>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-3 px-1">
-              <button 
-                type="button" 
-                onClick={() => { setIsRoundTrip(!isRoundTrip); setRouteResult(null); setShowOptimised(false); }}
-                disabled={isOptimising}
-                className={`w-10 h-6 rounded-full transition-colors flex items-center relative shadow-inner ${isRoundTrip ? 'bg-route-line' : 'bg-background border border-border'}`}
-              >
-                <div className={`w-4 h-4 bg-white rounded-full absolute transition-transform shadow-md ${isRoundTrip ? 'translate-x-5' : 'translate-x-1'}`}></div>
-              </button>
-              <span className="text-sm text-secondary select-none cursor-pointer hover:text-primary transition-colors" onClick={() => !isOptimising && setIsRoundTrip(!isRoundTrip)}>
-                Return to Depot (Round Trip)
-              </span>
-            </div>
-          </div>
-
-          {routeResult && showOptimised && (
-            <div className="shrink-0">
-              <RouteSummary 
-                totalDistanceMeters={routeResult.totalDistanceMeters} 
-                totalDurationSeconds={routeResult.totalDurationSeconds} 
-              />
-              <FleetBreakdown fleet={routeResult} stops={stops} />
-            </div>
-          )}
-        </div>
-
         <div className="shrink-0 pt-2">
-          <button
-            onClick={() => handleOptimise()}
-            disabled={stops.length < 2 || isOptimising}
-            className="w-full py-4 px-4 bg-route-line text-white font-semibold rounded-xl shadow-[0_10px_20px_rgba(58,143,214,0.3)] hover:bg-route-line/90 hover:shadow-[0_10px_25px_rgba(58,143,214,0.4)] hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0 disabled:hover:shadow-none transition-all active:scale-[0.98] flex items-center justify-center gap-2"
-          >
-            {isOptimising ? (
-              <>
-                <Loader2 size={20} className="animate-spin" />
-                Calculating...
-              </>
-            ) : (
-              `Optimise Fleet Route${numVehicles > 1 ? 's' : ''}`
-            )}
-          </button>
+          {optimiseButton}
         </div>
-
         <Footer onOpenAbout={() => setIsAboutOpen(true)} />
       </div>
 
+      {/* Mobile bottom sheet */}
+      {isMobile && (
+        <MobileSheet
+          ref={sheetRef}
+          onHeightChange={setSheetHeight}
+          header={brand}
+          footer={optimiseButton}
+        >
+          {scrollBody}
+          <div className="pt-4">
+            <Footer onOpenAbout={() => setIsAboutOpen(true)} />
+          </div>
+        </MobileSheet>
+      )}
+
       <AnimatePresence>
         {routeResult && showOptimised && routeResult.percentImprovement > 0 && (
-          <OptimisationReveal 
+          <OptimisationReveal
             percentImprovement={routeResult.percentImprovement}
             timeSavedSeconds={routeResult.naiveDurationSeconds - routeResult.totalDurationSeconds}
             distanceSavedMeters={(routeResult as any).naiveDistanceMeters - routeResult.totalDistanceMeters || 0}

@@ -1,6 +1,7 @@
 @import "tailwindcss";
 
 :root {
+  color-scheme: dark;
   --background: #0c0e11;
   --surface: #131519;
   --border: #1f2228;
@@ -41,6 +42,13 @@
 body {
   background-color: var(--background);
   color: var(--text-primary);
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Prevent iOS rubber-band scrolling from fighting the fixed map + bottom sheet. */
+html,
+body {
+  overscroll-behavior-y: none;
 }
 
 .custom-div-icon {

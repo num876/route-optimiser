@@ -5,19 +5,43 @@ import 'leaflet/dist/leaflet.css'
 
 function MapPanner() {
   const map = useMap()
-  
+
   useEffect(() => {
-    let animationFrameId: number
-    
-    // Smooth continuous panning
+    // Respect reduced-motion preferences: skip the continuous pan entirely.
+    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    if (prefersReducedMotion) return
+
+    let animationFrameId: number | null = null
+
     const pan = () => {
       map.panBy([0.5, 0], { animate: false })
       animationFrameId = requestAnimationFrame(pan)
     }
-    
-    animationFrameId = requestAnimationFrame(pan)
-    
-    return () => cancelAnimationFrame(animationFrameId)
+
+    const start = () => {
+      if (animationFrameId === null) animationFrameId = requestAnimationFrame(pan)
+    }
+
+    const stop = () => {
+      if (animationFrameId !== null) {
+        cancelAnimationFrame(animationFrameId)
+        animationFrameId = null
+      }
+    }
+
+    // Pause the animation loop when the tab is hidden to save battery/CPU on mobile.
+    const handleVisibility = () => {
+      if (document.hidden) stop()
+      else start()
+    }
+
+    document.addEventListener('visibilitychange', handleVisibility)
+    if (!document.hidden) start()
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibility)
+      stop()
+    }
   }, [map])
 
   return null
