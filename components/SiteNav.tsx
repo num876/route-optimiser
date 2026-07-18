@@ -3,7 +3,8 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useState, useEffect } from 'react'
-import { MapPin, Menu, X, ArrowRight } from 'lucide-react'
+import { Menu, X, ArrowRight } from 'lucide-react'
+import { LogoMark } from '@/components/Logo'
 
 export const navLinks = [
   { href: '/about', label: 'About' },
@@ -29,10 +30,8 @@ export default function SiteNav() {
 
   return (
     <nav className="w-full flex items-center justify-between p-6 max-w-7xl mx-auto z-30 relative">
-      <Link href="/" className="flex items-center gap-3 group">
-        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-route-line to-blue-600 flex items-center justify-center shadow-lg group-hover:scale-105 transition-transform">
-          <MapPin size={20} className="text-white" />
-        </div>
+      <Link href="/" className="flex items-center gap-3 group" aria-label="Route Optimiser home">
+        <LogoMark size={40} idSuffix="nav" className="shrink-0 rounded-xl shadow-lg group-hover:scale-105 transition-transform" />
         <span className="font-bold text-lg tracking-tight text-white drop-shadow-md">Route Optimiser</span>
       </Link>
 

@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { MapPin } from 'lucide-react'
+import { LogoMark } from '@/components/Logo'
 
 const footerLinks = [
   { href: '/about', label: 'About Us' },
@@ -14,10 +14,8 @@ export default function SiteFooter() {
     <footer className="w-full border-t border-border/40 z-10 relative bg-background/90 backdrop-blur-md">
       <div className="max-w-7xl mx-auto px-6 py-12 flex flex-col md:flex-row md:items-start md:justify-between gap-8">
         <div className="max-w-xs">
-          <Link href="/" className="flex items-center gap-3 mb-4">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-route-line to-blue-600 flex items-center justify-center shadow-lg">
-              <MapPin size={18} className="text-white" />
-            </div>
+          <Link href="/" className="flex items-center gap-3 mb-4" aria-label="Route Optimiser home">
+            <LogoMark size={36} idSuffix="footer" className="shrink-0 rounded-xl shadow-lg" />
             <span className="font-bold text-base tracking-tight text-white">Route Optimiser</span>
           </Link>
           <p className="text-zinc-500 text-sm leading-relaxed">
